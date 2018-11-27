@@ -30,15 +30,15 @@ func work() {
 
 							counter++
 
-							resp = &Response{Code: "OK", DBName:trx.DBName, TableName: trx.TableName, UID: trx.UID, SavedVersion: lastest, SavedStamp: time.Now().Unix()}
+							resp = &Response{Code: "OK", DBName: trx.DBName, TableName: trx.TableName, UID: trx.UID, SavedVersion: lastest, SavedStamp: time.Now().Unix()}
 						} else {
-							resp = &Response{Code: "SKIP", DBName:trx.DBName,TableName: trx.TableName, UID: trx.UID, SavedVersion: trx.Version, SavedStamp: time.Now().Unix()}
+							resp = &Response{Code: "SKIP", DBName: trx.DBName, TableName: trx.TableName, UID: trx.UID, SavedVersion: trx.Version, SavedStamp: time.Now().Unix()}
 						}
 						PutResp(resp)
 
 					case "DELETE":
 						log.Printf("delete record %d", trx.UID)
-						resp := &Response{Code: "OK", DBName:trx.DBName,TableName: trx.TableName, UID: trx.UID, SavedVersion: trx.Version, SavedStamp: time.Now().Unix()}
+						resp := &Response{Code: "OK", DBName: trx.DBName, TableName: trx.TableName, UID: trx.UID, SavedVersion: trx.Version, SavedStamp: time.Now().Unix()}
 						PutResp(resp)
 
 					}

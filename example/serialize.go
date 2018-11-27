@@ -1,16 +1,16 @@
 package main
 
 import (
-	"log"
 	"github.com/helloshiki/ndb"
+	"log"
 )
 
 type Transaction = ndb.Transaction
 type Response struct {
-	DBName string
+	DBName       string
 	TableName    string
 	Code         string
-	UID           int
+	UID          int
 	SavedVersion uint64
 	SavedStamp   int64
 }

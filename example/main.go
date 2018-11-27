@@ -18,7 +18,6 @@ import (
 var (
 	CpuProfile  = flag.String("cpu-profile", "", "write cpu profile to file")
 	HeapProfile = flag.String("heap-profile", "", "write heap profile to file")
-
 )
 
 func main() {
