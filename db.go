@@ -54,16 +54,22 @@ func (db *DB) Update(row Row) error {
 }
 
 //更新某个列 cmd 支持REPLACE， INC, DESC, ZERO
-func (db *DB) UpdateFiled(row Row, fieldName string, cmd string, value interface{}) error {
+func (db *DB) UpdateFiled(row Row, fieldName string, cmd string, value interface{}, strict bool) error {
 	tableName := getTableName(row)
 	table := db.mustGetTable(tableName)
-	return table.UpdateField(row, fieldName, cmd, value)
+	return table.UpdateField(row, fieldName, cmd, value, strict)
 }
 
 func (db *DB) Get(row Row) Row {
 	tableName := getTableName(row)
 	table := db.mustGetTable(tableName)
 	return table.Get(row)
+}
+
+func (db *DB) GetByIndex(row Row, indexName string) []int {
+	tableName := getTableName(row)
+	table := db.mustGetTable(tableName)
+	return table.GetByIndex(row, indexName)
 }
 
 func (db *DB) Delete(row Row) {

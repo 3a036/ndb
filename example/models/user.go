@@ -21,7 +21,7 @@ func (u *User) GetUID() int {
 	return u.UID
 }
 
-func (u *User) Index() [][]string {
+func (u *User) Index() map[string][]string {
 	return nil
 }
 

@@ -71,6 +71,6 @@ var RespChan chan *Response
 
 func init() {
 	ndb.SetPutTx(putTrx)
-	ReqChan = make(chan *Transaction, 100*1024)
-	RespChan = make(chan *Response, 100*1024)
+	ReqChan = make(chan *Transaction, 100*1024*1024)
+	RespChan = make(chan *Response, 100*1024*1024)
 }

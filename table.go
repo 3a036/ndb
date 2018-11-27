@@ -61,6 +61,23 @@ func (tb *Table) putIdx(idx int) {
 	}
 }
 
+func (tb *Table) getIndexKey(row Row, indexName string) string {
+	if indexs := row.Index(); indexs != nil {
+		if indexFields, ok := indexs[indexName]; ok {
+			indexKey := indexName
+			val := reflect.ValueOf(row)
+			sort.StringSlice(indexFields).Sort()
+			for i := 0; i < len(indexFields); i++ {
+				indexKey += fmt.Sprintf(":%v", reflect.Indirect(val).FieldByName(indexFields[i]))
+			}
+			return indexKey
+		}
+	}
+
+	return ""
+
+}
+
 func (table *Table) sortIndex(index string) {
 	slock := table.sortlock
 	slock.Lock()
@@ -139,21 +156,14 @@ func (table *Table) insert(row Row, isLoad bool) error {
 	}
 
 	//存在索引，创建索引
-	val := reflect.ValueOf(row)
-	for i := 0; i < len(indexs); i++ {
-		indexArr := indexs[i]
-		if len(indexArr) == 0 {
+	for indexName, indexFields := range indexs {
+		if len(indexFields) == 0 {
 			continue
 		}
-
-		pk := tableName
-		sort.StringSlice(indexArr).Sort()
-		for j := 0; j < len(indexArr); j++ {
-			pk += fmt.Sprintf(":%s:%v", indexArr[j], reflect.Indirect(val).FieldByName(indexArr[j]))
-		}
-		table.indexes[pk] = append(table.indexes[pk], uid)
+		indexKey := table.getIndexKey(row, indexName)
+		table.indexes[indexKey] = append(table.indexes[indexKey], uid)
 		//索引排序
-		table.sortIndex(pk)
+		table.sortIndex(indexKey)
 	}
 	return nil
 }
@@ -183,13 +193,21 @@ func (table *Table) Update(row Row) error {
 	return nil
 }
 
-func (table *Table) UpdateField(row Row, fieldName string, cmd string, value interface{}) error {
+//cmd支持REPLACE，INC，DEC，ZERO，某些特殊类型只支持REPLACE，strict是否严格模式，当严格模式时，当前行必须已被序列化
+func (table *Table) UpdateField(row Row, fieldName string, cmd string, value interface{}, strict bool) error {
 	tableName := table.tableName
 	uid := row.GetUID()
 
 	lock := table.lock
 	lock.Lock()
 	defer lock.Unlock()
+
+	if strict { //严格模式，主要用在用户资产转账场景
+		if meta, ok := table.metas[uid]; !ok || meta.Version != meta.SavedVersion {
+			log.Printf("row %d in table[%s] strict check failed", uid, tableName)
+			return fmt.Errorf("row %d in table[%s] strict check failed", uid, tableName)
+		}
+	}
 
 	if rid, ok := table.idxIndexes[uid]; ok {
 		val := reflect.ValueOf(table.rows[rid]).Elem()
@@ -204,7 +222,7 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 					val.FieldByName(fieldName).Set(reflect.ValueOf(value))
 				case "INC":
 					val.FieldByName(fieldName).Set(reflect.ValueOf(d1.Add(d2)))
-				case "DESC":
+				case "DEC":
 					if d1.GreaterThanOrEqual(d2) {
 						val.FieldByName(fieldName).Set(reflect.ValueOf(d1.Sub(d2)))
 					} else {
@@ -224,7 +242,7 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 				val.FieldByName(fieldName).SetInt(int64(value.(int)))
 			case "INC":
 				val.FieldByName(fieldName).SetInt(val.FieldByName(fieldName).Int() + int64(value.(int)))
-			case "DESC":
+			case "DEC":
 				if val.FieldByName(fieldName).Int() >= int64(value.(int)) {
 					val.FieldByName(fieldName).SetInt(val.FieldByName(fieldName).Int() - int64(value.(int)))
 				} else {
@@ -263,7 +281,7 @@ func (table *Table) putTx(cmd string, uid int, version uint64) {
 }
 
 func (table *Table) Get(row Row) Row {
-	tableName := getTableName(row)
+	tableName := table.tableName
 
 	uid := row.GetUID()
 	lock := table.lock
@@ -276,6 +294,20 @@ func (table *Table) Get(row Row) Row {
 
 	log.Printf("record %d is not exist in table %s", uid, tableName)
 	return nil
+}
+
+/*使用索引名查找， 相关索引列都要赋值*/
+func (table *Table) GetByIndex(row Row, indexName string) []int {
+	indexKey := table.getIndexKey(row, indexName)
+	if indexKey == "" {
+		return nil
+	}
+
+	lock := table.lock
+	lock.Lock()
+	defer lock.Unlock()
+
+	return table.indexes[indexKey]
 }
 
 func (table *Table) Delete(row Row) {
@@ -301,11 +333,12 @@ func (table *Table) Delete(row Row) {
 	//删除主键列表
 	pk := PRIMARYKEY
 	indexArr := table.indexes[pk]
-	for i := 0; i < len(indexArr); i++ {
+	arrLen := len(indexArr)
+	for i := 0; i < arrLen; i++ {
 		if indexArr[i] == uid {
-			arrLen := len(indexArr)
 			indexArr[i] = indexArr[arrLen-1]
 			indexArr = indexArr[:arrLen-1]
+			break
 		}
 	}
 	table.indexes[pk] = indexArr
@@ -321,31 +354,24 @@ func (table *Table) Delete(row Row) {
 	}
 
 	//存在索引，删除索引
-	val := reflect.ValueOf(row)
-	for i := 0; i < len(indexs); i++ {
-		indexArr := indexs[i]
-		if len(indexArr) == 0 {
+	for indexName, indexFields := range indexs {
+		if len(indexFields) == 0 {
 			continue
 		}
-
-		pk := tableName
-		sort.StringSlice(indexArr).Sort()
-		for j := 0; j < len(indexArr); j++ {
-			pk += fmt.Sprintf(":%s:%v", indexArr[j], reflect.Indirect(val).FieldByName(indexArr[j]))
-		}
-
-		pkIndexArr := table.indexes[pk]
-		for k := 0; k < len(pkIndexArr); k++ {
-			if pkIndexArr[k] == uid {
-				arrLen := len(pkIndexArr)
-				pkIndexArr[k] = pkIndexArr[arrLen-1]
-				pkIndexArr = pkIndexArr[:arrLen-1]
+		indexKey := table.getIndexKey(row, indexName)
+		indexArr := table.indexes[indexKey]
+		arrLen := len(indexArr)
+		for i := 0; i < arrLen; i++ {
+			if indexArr[i] == uid {
+				indexArr[i] = indexArr[arrLen-1]
+				indexArr = indexArr[:arrLen-1]
+				break
 			}
 		}
-		table.indexes[pk] = pkIndexArr
+		table.indexes[indexKey] = indexArr
 
 		//索引排序
-		table.sortIndex(pk)
+		table.sortIndex(indexKey)
 	}
 }
 

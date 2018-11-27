@@ -77,7 +77,7 @@ func sample() {
 		u := models.User{UID: i, GID: 0, TCC: decimal.New(99, 2), ETH: decimal.New(199, 2), NASH: decimal.New(299, 2), Worker: map[int]bool{1: true}}
 		ndb.Insert(&u)
 	}
-	mcnt := 1000000
+	mcnt := 100
 	start := time.Now().Unix()
 
 	//插入mcnt台矿机
@@ -119,15 +119,20 @@ func sample() {
 	log.Printf("after transfer: user1: %+v, user2: %+v", ndb.Get(&u1), ndb.Get(&u2))
 
 	log.Printf("before u1 is %+v", u1)
-	ndb.UpdateField(&u1, "Desc", "REPLACE", "ssss")
-	ndb.UpdateField(&u1, "Worker", "REPLACE", map[int]bool{3: true})
+	ndb.UpdateField(&u1, "Desc", "REPLACE", "ssss", true)
+	ndb.UpdateField(&u1, "Worker", "REPLACE", map[int]bool{3: true}, true)
 
-	ndb.UpdateField(&u1, "I1", "ZERO", 0)
-	ndb.UpdateField(&u1, "I1", "REPLACE", 1000)
-	ndb.UpdateField(&u1, "I1", "INC", 100)
-	ndb.UpdateField(&u1, "I1", "DESC", 10)
+	ndb.UpdateField(&u1, "I1", "ZERO", 0, true)
+	ndb.UpdateField(&u1, "I1", "REPLACE", 1000, true)
+	ndb.UpdateField(&u1, "I1", "INC", 100, true)
+	ndb.UpdateField(&u1, "I1", "DEC", 10, true)
 
 	log.Printf("after u1 is %+v", u1)
+
+	m := models.TchMachine{GID: 0, UID: 1}
+	arr := ndb.GetByIndex(&m, "guid")
+	log.Printf("GID:0 UID:1's TchMachine is %+v", arr)
+
 	///////////////////转账/////////////////////////////////////////////
 
 }

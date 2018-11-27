@@ -24,12 +24,16 @@ func Get(row Row) Row {
 	return DefaultDB.Get(row)
 }
 
+func GetByIndex(row Row, indexName string) []int {
+	return DefaultDB.GetByIndex(row, indexName)
+}
+
 func Delete(row Row) {
 	DefaultDB.Delete(row)
 }
 
-func UpdateField(row Row, fieldName string, cmd string, value interface{}) error {
-	return DefaultDB.UpdateFiled(row, fieldName, cmd, value)
+func UpdateField(row Row, fieldName string, cmd string, value interface{}, strict bool) error {
+	return DefaultDB.UpdateFiled(row, fieldName, cmd, value, strict)
 }
 
 func Insert(row Row) error {
