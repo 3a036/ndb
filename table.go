@@ -23,7 +23,7 @@ func getTableName(row Row) string {
 
 func newTable(dbName, tableName string) *Table {
 	return &Table{
-		dbName:dbName,
+		dbName:     dbName,
 		tableName:  tableName,
 		rows:       make([]Row, 0),
 		idxIndexes: make(map[int]int),
@@ -182,7 +182,7 @@ func (table *Table) Update(row Row) error {
 	return nil
 }
 
-func (table *Table) UpdateFiled(row Row, fieldName string, cmd string, value interface{}) error {
+func (table *Table) UpdateField(row Row, fieldName string, cmd string, value interface{}) error {
 	tableName := table.tableName
 	uid := row.GetUID()
 
@@ -192,26 +192,50 @@ func (table *Table) UpdateFiled(row Row, fieldName string, cmd string, value int
 
 	if rid, ok := table.idxIndexes[uid]; ok {
 		val := reflect.ValueOf(table.rows[rid]).Elem()
+
 		switch val.FieldByName(fieldName).Type().Kind() {
-		case reflect.String:
-			val.FieldByName(fieldName).SetString(value.(string))
-		case reflect.Int64, reflect.Int32, reflect.Int:
+		case reflect.Map, reflect.String, reflect.Struct: //直接替换的类型
+			if val.FieldByName(fieldName).Type().Name() == "Decimal" {
+				d1 := val.FieldByName(fieldName).Interface().(decimal.Decimal)
+				d2 := value.(decimal.Decimal)
+				switch cmd {
+				case "REPLACE":
+					val.FieldByName(fieldName).Set(reflect.ValueOf(value))
+				case "INC":
+					val.FieldByName(fieldName).Set(reflect.ValueOf(d1.Add(d2)))
+				case "DESC":
+					if d1.GreaterThanOrEqual(d2) {
+						val.FieldByName(fieldName).Set(reflect.ValueOf(d1.Sub(d2)))
+					} else {
+						return fmt.Errorf("record %d %s not enough", id, fieldName)
+					}
+				case "ZERO":
+					val.FieldByName(fieldName).Set(reflect.ValueOf(decimal.Zero))
+				default:
+					panic(fmt.Errorf("unsupport update cmd %s ", cmd))
+				}
+			} else { //REPLACE
+				val.FieldByName(fieldName).Set(reflect.ValueOf(value))
+			}
+		case reflect.Int:
 			switch cmd {
 			case "REPLACE":
-				val.FieldByName(fieldName).SetInt(value.(int64))
+				val.FieldByName(fieldName).SetInt(int64(value.(int)))
 			case "INC":
-				val.FieldByName(fieldName).SetInt(val.FieldByName(fieldName).Int() + value.(int64))
+				val.FieldByName(fieldName).SetInt(val.FieldByName(fieldName).Int() + int64(value.(int)))
 			case "DESC":
-				if val.FieldByName(fieldName).Int() >= value.(int64) {
-					val.FieldByName(fieldName).SetInt(val.FieldByName(fieldName).Int() - value.(int64))
+				if val.FieldByName(fieldName).Int() >= int64(value.(int)) {
+					val.FieldByName(fieldName).SetInt(val.FieldByName(fieldName).Int() - int64(value.(int)))
 				} else {
-					return fmt.Errorf("record %d %s not enough", uid, fieldName)
+					return fmt.Errorf("record %d %s not enough", id, fieldName)
 				}
+			case "ZERO":
+				val.FieldByName(fieldName).SetInt(0)
 			default:
 				panic(fmt.Errorf("unsupport update cmd %s ", cmd))
 			}
 		default:
-			fmt.Printf("type is %+v", val.FieldByName(fieldName).Type().Kind())
+			log.Printf("unsupport type is %+v in table[%s],field[%s]", val.FieldByName(fieldName).Type().Kind(), tableName, fieldName)
 		}
 		//更新meta
 		meta := table.metas[uid]
@@ -229,11 +253,11 @@ func (table *Table) UpdateFiled(row Row, fieldName string, cmd string, value int
 
 func (table *Table) putTx(cmd string, uid int, version uint64) {
 	putTrx(&Transaction{
-		Cmd: cmd,
-		DBName:table.dbName,
+		Cmd:       cmd,
+		DBName:    table.dbName,
 		TableName: table.tableName,
-		UID: uid,
-		Version: version,
+		UID:       uid,
+		Version:   version,
 	})
 }
 
