@@ -23,7 +23,7 @@ func getTableName(row Row) string {
 
 func newTable(dbName, tableName string) *Table {
 	return &Table{
-		dbName:dbName,
+		dbName:     dbName,
 		tableName:  tableName,
 		rows:       make([]Row, 0),
 		idxIndexes: make(map[int]int),
@@ -229,11 +229,11 @@ func (table *Table) UpdateFiled(row Row, fieldName string, cmd string, value int
 
 func (table *Table) putTx(cmd string, uid int, version uint64) {
 	putTrx(&Transaction{
-		Cmd: cmd,
-		DBName:table.dbName,
+		Cmd:       cmd,
+		DBName:    table.dbName,
 		TableName: table.tableName,
-		UID: uid,
-		Version: version,
+		UID:       uid,
+		Version:   version,
 	})
 }
 

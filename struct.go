@@ -21,7 +21,7 @@ type MetaInfo struct {
 }
 
 type Table struct {
-	dbName string
+	dbName     string
 	tableName  string
 	rows       []Row             // map[idx] => row
 	idxIndexes map[int]int       // map[uid] => idx
@@ -39,12 +39,11 @@ type DB struct {
 	tables map[string]*Table
 }
 
-
 type Transaction struct {
-	DBName string
+	DBName    string
 	TableName string
 	Cmd       string
-	UID        int
+	UID       int
 	Version   uint64
 }
 
