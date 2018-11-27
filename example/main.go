@@ -77,7 +77,7 @@ func sample() {
 		u := models.User{UID: i, GID: 0, TCC: decimal.New(99, 2), ETH: decimal.New(199, 2), NASH: decimal.New(299, 2), Worker: map[int]bool{1: true}}
 		ndb.Insert(&u)
 	}
-	mcnt := 10
+	mcnt := 1000000
 	start := time.Now().Unix()
 
 	//插入mcnt台矿机
