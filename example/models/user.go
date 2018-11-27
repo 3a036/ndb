@@ -2,10 +2,19 @@ package models
 
 import "encoding/json"
 
+import (
+	"github.com/shopspring/decimal"
+)
+
 type User struct {
-	UID int
-	GID int
-	TCC int
+	UID    int
+	GID    int
+	TCC    decimal.Decimal
+	ETH    decimal.Decimal
+	NASH   decimal.Decimal
+	Desc   string
+	Worker map[int]bool
+	I1     int
 }
 
 func (u *User) GetUID() int {

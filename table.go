@@ -2,6 +2,7 @@ package ndb
 
 import (
 	"fmt"
+	"github.com/shopspring/decimal"
 	"log"
 	"reflect"
 	"sort"
@@ -207,7 +208,7 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 					if d1.GreaterThanOrEqual(d2) {
 						val.FieldByName(fieldName).Set(reflect.ValueOf(d1.Sub(d2)))
 					} else {
-						return fmt.Errorf("record %d %s not enough", id, fieldName)
+						return fmt.Errorf("record %d %s not enough", uid, fieldName)
 					}
 				case "ZERO":
 					val.FieldByName(fieldName).Set(reflect.ValueOf(decimal.Zero))
@@ -227,7 +228,7 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 				if val.FieldByName(fieldName).Int() >= int64(value.(int)) {
 					val.FieldByName(fieldName).SetInt(val.FieldByName(fieldName).Int() - int64(value.(int)))
 				} else {
-					return fmt.Errorf("record %d %s not enough", id, fieldName)
+					return fmt.Errorf("record %d %s not enough", uid, fieldName)
 				}
 			case "ZERO":
 				val.FieldByName(fieldName).SetInt(0)
