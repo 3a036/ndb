@@ -32,7 +32,7 @@ func Delete(row Row) {
 	DefaultDB.Delete(row)
 }
 
-func UpdateField(row Row, fieldName string, cmd string, value interface{}, strict bool) error {
+func UpdateField(row Row, fieldName string, cmd string, value interface{}, strict bool) (string, string, error) {
 	return DefaultDB.UpdateFiled(row, fieldName, cmd, value, strict)
 }
 

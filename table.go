@@ -193,8 +193,8 @@ func (table *Table) Update(row Row) error {
 	return nil
 }
 
-//cmd支持REPLACE，INC，DEC，ZERO，某些特殊类型只支持REPLACE，strict是否严格模式，当严格模式时，当前行必须已被序列化
-func (table *Table) UpdateField(row Row, fieldName string, cmd string, value interface{}, strict bool) error {
+//cmd支持REPLACE，INC，DEC，ZERO，某些特殊类型只支持REPLACE，strict是否严格模式，当严格模式时，当前行必须已被序列化, 成功时，返回该列更新前后的值
+func (table *Table) UpdateField(row Row, fieldName string, cmd string, value interface{}, strict bool) (string, string, error) {
 	tableName := table.tableName
 	uid := row.GetUID()
 
@@ -202,10 +202,13 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 	lock.Lock()
 	defer lock.Unlock()
 
+	b := ""
+	e := ""
+
 	if strict { //严格模式，主要用在用户资产转账场景
 		if meta, ok := table.metas[uid]; !ok || meta.Version != meta.SavedVersion {
 			log.Printf("row %d in table[%s] strict check failed", uid, tableName)
-			return fmt.Errorf("row %d in table[%s] strict check failed", uid, tableName)
+			return b, e, fmt.Errorf("row %d in table[%s] strict check failed", uid, tableName)
 		}
 	}
 
@@ -217,6 +220,7 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 			if val.FieldByName(fieldName).Type().Name() == "Decimal" {
 				d1 := val.FieldByName(fieldName).Interface().(decimal.Decimal)
 				d2 := value.(decimal.Decimal)
+				b = d1.String()
 				switch cmd {
 				case "REPLACE":
 					val.FieldByName(fieldName).Set(reflect.ValueOf(value))
@@ -226,17 +230,21 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 					if d1.GreaterThanOrEqual(d2) {
 						val.FieldByName(fieldName).Set(reflect.ValueOf(d1.Sub(d2)))
 					} else {
-						return fmt.Errorf("record %d %s not enough", uid, fieldName)
+						return b, e, fmt.Errorf("record %d %s not enough", uid, fieldName)
 					}
 				case "ZERO":
 					val.FieldByName(fieldName).Set(reflect.ValueOf(decimal.Zero))
 				default:
 					panic(fmt.Errorf("unsupport update cmd %s ", cmd))
 				}
+				e = val.FieldByName(fieldName).Interface().(decimal.Decimal).String()
 			} else { //REPLACE
+				b = fmt.Sprintf("%+v", val.FieldByName(fieldName))
 				val.FieldByName(fieldName).Set(reflect.ValueOf(value))
+				e = fmt.Sprintf("%+v", value)
 			}
 		case reflect.Int:
+			b = fmt.Sprintf("%+v", val.FieldByName(fieldName))
 			switch cmd {
 			case "REPLACE":
 				val.FieldByName(fieldName).SetInt(int64(value.(int)))
@@ -246,15 +254,17 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 				if val.FieldByName(fieldName).Int() >= int64(value.(int)) {
 					val.FieldByName(fieldName).SetInt(val.FieldByName(fieldName).Int() - int64(value.(int)))
 				} else {
-					return fmt.Errorf("record %d %s not enough", uid, fieldName)
+					return "", "", fmt.Errorf("record %d %s not enough", uid, fieldName)
 				}
 			case "ZERO":
 				val.FieldByName(fieldName).SetInt(0)
 			default:
 				panic(fmt.Errorf("unsupport update cmd %s ", cmd))
 			}
+			e = fmt.Sprintf("%+v", val.FieldByName(fieldName))
 		default:
 			log.Printf("unsupport type is %+v in table[%s],field[%s]", val.FieldByName(fieldName).Type().Kind(), tableName, fieldName)
+			return "", "", fmt.Errorf("unsupport type is %+v in table[%s],field[%s]", val.FieldByName(fieldName).Type().Kind(), tableName, fieldName)
 		}
 		//更新meta
 		meta := table.metas[uid]
@@ -265,9 +275,9 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 		table.putTx("UPDATE", uid, meta.Version)
 	} else {
 		log.Printf("record %d is not exist in table %s", uid, tableName)
-		return fmt.Errorf("record %d is not exist in table %s", uid, tableName)
+		return b, e, fmt.Errorf("record %d is not exist in table %s", uid, tableName)
 	}
-	return nil
+	return b, e, nil
 }
 
 func (table *Table) putTx(cmd string, uid int, version uint64) {

@@ -119,13 +119,38 @@ func sample() {
 	log.Printf("after transfer: user1: %+v, user2: %+v", ndb.Get(&u1), ndb.Get(&u2))
 
 	log.Printf("before u1 is %+v", u1)
-	ndb.UpdateField(&u1, "Desc", "REPLACE", "ssss", true)
-	ndb.UpdateField(&u1, "Worker", "REPLACE", map[int]bool{3: true}, true)
+	if b, e, err := ndb.UpdateField(&u1, "Desc", "REPLACE", "ssss", false); err == nil {
+		log.Printf("DESC change from %s to %s", b, e)
+	} else {
+		log.Printf("err is %+v", err)
+	}
+	if b, e, err := ndb.UpdateField(&u1, "Worker", "REPLACE", map[int]bool{3: true}, false); err == nil {
+		log.Printf("Worker change from %s to %s", b, e)
+	} else {
+		log.Printf("err is %+v", err)
+	}
 
-	ndb.UpdateField(&u1, "I1", "ZERO", 0, true)
-	ndb.UpdateField(&u1, "I1", "REPLACE", 1000, true)
-	ndb.UpdateField(&u1, "I1", "INC", 100, true)
-	ndb.UpdateField(&u1, "I1", "DEC", 10, true)
+	if b, e, err := ndb.UpdateField(&u1, "I1", "ZERO", 0, false); err == nil {
+		log.Printf("I1 change from %s to %s", b, e)
+	} else {
+		log.Printf("err is %+v", err)
+	}
+
+	if b, e, err := ndb.UpdateField(&u1, "I1", "REPLACE", 1000, false); err == nil {
+		log.Printf("I1 change from %s to %s", b, e)
+	} else {
+		log.Printf("err is %+v", err)
+	}
+	if b, e, err := ndb.UpdateField(&u1, "I1", "INC", 100, false); err == nil {
+		log.Printf("I1 change from %s to %s", b, e)
+	} else {
+		log.Printf("err is %+v", err)
+	}
+	if b, e, err := ndb.UpdateField(&u1, "I1", "DEC", 10, false); err == nil {
+		log.Printf("I1 change from %s to %s", b, e)
+	} else {
+		log.Printf("err is %+v", err)
+	}
 
 	log.Printf("after u1 is %+v", u1)
 

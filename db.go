@@ -54,7 +54,7 @@ func (db *DB) Update(row Row) error {
 }
 
 //更新某个列 cmd 支持REPLACE， INC, DESC, ZERO
-func (db *DB) UpdateFiled(row Row, fieldName string, cmd string, value interface{}, strict bool) error {
+func (db *DB) UpdateFiled(row Row, fieldName string, cmd string, value interface{}, strict bool) (string, string, error) {
 	tableName := getTableName(row)
 	table := db.mustGetTable(tableName)
 	return table.UpdateField(row, fieldName, cmd, value, strict)

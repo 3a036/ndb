@@ -20,15 +20,20 @@ func Transfer(fromID int, toID int, asset string, amount decimal.Decimal) error 
 	}
 
 	//先扣钱
-	if err := ndb.UpdateField(from, asset, "DEC", amount, true); err != nil {
+	if b, e, err := ndb.UpdateField(from, asset, "DEC", amount, false); err != nil {
 		log.Printf("user %d asset[%s] DESC failed", fromID, asset)
 		return err
+	} else {
+		log.Printf("id %d's %s change from %s to %s", fromID, asset, b, e)
 	}
 
 	//再发钱
-	if err := ndb.UpdateField(to, asset, "INC", amount, false); err != nil {
+	if b, e, err := ndb.UpdateField(to, asset, "INC", amount, false); err != nil {
 		log.Printf("user %d asset[%s] INC failed", toID, asset)
 		return err
+	} else {
+		log.Printf("id %d's %s change from %s to %s", toID, asset, b, e)
+
 	}
 
 	return nil
