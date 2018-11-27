@@ -16,8 +16,9 @@ func (u *User) Index() [][]string {
 	return nil
 }
 
-func (u *User) Marshal() ([]byte, error) {
-	return json.Marshal(u)
+func (u *User) Encode() []byte {
+	bs, _ := json.Marshal(u)
+	return bs
 }
 
 func (u *User) Category() string {

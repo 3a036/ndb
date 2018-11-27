@@ -339,7 +339,7 @@ func (table *Table) GetRowBytes(uid int, version uint64) (uint64, []byte) {
 	obj := table.rows[idx]
 	ver := meta.Version
 
-	buf, _ := obj.Marshal()
+	buf := obj.Encode()
 
 	return ver, buf
 }

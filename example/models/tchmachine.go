@@ -22,8 +22,9 @@ func (t *TchMachine) GetUID() int {
 	return t.ID
 }
 
-func (u *TchMachine) Marshal() ([]byte, error) {
-	return json.Marshal(u)
+func (u *TchMachine) Encode() []byte {
+	bs, _ := json.Marshal(u)
+	return bs
 }
 
 func (u *TchMachine) Category() string {
