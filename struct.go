@@ -1,6 +1,7 @@
 package ndb
 
 import (
+	"errors"
 	"sync"
 	"time"
 )
@@ -14,6 +15,14 @@ const (
 const (
 	ROWSIZE    = M
 	PRIMARYKEY = "pk"
+)
+
+var (
+	DBErrDec = errors.New("dec fail")
+	DBErrSync = errors.New("not sync")
+	DBErrNotFound = errors.New("not found")
+	DBErrNotSupport = errors.New("not support")
+	DBErrDup = errors.New("duplicate")
 )
 
 type MetaInfo struct {

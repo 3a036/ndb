@@ -122,7 +122,7 @@ func (table *Table) insert(row Row, isLoad bool) error {
 
 	if rid, ok := table.idxIndexes[uid]; ok { //exist
 		log.Printf("record id[%d] is exist in table %s %d row", uid, tableName, rid)
-		return fmt.Errorf("record %d is exist in %s", uid, tableName)
+		return DBErrDup // fmt.Errorf("record %d is exist in %s", uid, tableName)
 	}
 
 	idx := table.nextIdx()
@@ -259,7 +259,7 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 					if d1.GreaterThanOrEqual(d2) {
 						val.FieldByName(fieldName).Set(reflect.ValueOf(d1.Sub(d2)))
 					} else {
-						return b, e, fmt.Errorf("record %d %s not enough", uid, fieldName)
+						return b, e, DBErrDec //  fmt.Errorf("record %d %s not enough", uid, fieldName)
 					}
 				case "ZERO":
 					val.FieldByName(fieldName).Set(reflect.ValueOf(decimal.Zero))
@@ -283,7 +283,7 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 				if val.FieldByName(fieldName).Int() >= int64(value.(int)) {
 					val.FieldByName(fieldName).SetInt(val.FieldByName(fieldName).Int() - int64(value.(int)))
 				} else {
-					return "", "", fmt.Errorf("record %d %s not enough", uid, fieldName)
+					return "", "", DBErrDec // fmt.Errorf("record %d %s not enough", uid, fieldName)
 				}
 			case "ZERO":
 				val.FieldByName(fieldName).SetInt(0)
@@ -293,7 +293,7 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 			e = fmt.Sprintf("%+v", val.FieldByName(fieldName))
 		default:
 			log.Printf("unsupport type is %+v in table[%s],field[%s]", val.FieldByName(fieldName).Type().Kind(), tableName, fieldName)
-			return "", "", fmt.Errorf("unsupport type is %+v in table[%s],field[%s]", val.FieldByName(fieldName).Type().Kind(), tableName, fieldName)
+			return "", "", DBErrNotSupport // fmt.Errorf("unsupport type is %+v in table[%s],field[%s]", val.FieldByName(fieldName).Type().Kind(), tableName, fieldName)
 		}
 		//更新meta
 		meta := table.metas[uid]
@@ -304,7 +304,7 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 		table.putTx("UPDATE", uid, meta.Version)
 	} else {
 		log.Printf("record %d is not exist in table %s", uid, tableName)
-		return b, e, fmt.Errorf("record %d is not exist in table %s", uid, tableName)
+		return b, e, DBErrNotFound // fmt.Errorf("record %d is not exist in table %s", uid, tableName)
 	}
 	return b, e, nil
 }
