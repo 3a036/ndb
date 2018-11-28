@@ -53,6 +53,12 @@ func (db *DB) Update(row Row) error {
 	return table.Update(row)
 }
 
+func (db *DB) UpdateFunc(row Row, cb func(row Row) bool) error {
+	tableName := getTableName(row)
+	table := db.mustGetTable(tableName)
+	return table.UpdateFunc(row, cb)
+}
+
 //更新某个列 cmd 支持REPLACE， INC, DESC, ZERO
 func (db *DB) UpdateFiled(row Row, fieldName string, cmd string, value interface{}, strict bool) (string, string, error) {
 	tableName := getTableName(row)

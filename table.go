@@ -193,6 +193,27 @@ func (table *Table) Update(row Row) error {
 	return nil
 }
 
+func (table *Table) UpdateFunc(row Row, cb func(row Row) bool) error {
+	tableName := table.tableName
+	uid := row.GetUID()
+
+	lock := table.lock
+	lock.Lock()
+	defer lock.Unlock()
+
+	rid, ok := table.idxIndexes[uid]
+	if !ok {
+		log.Printf("record %d is not exist in table %s", uid, tableName)
+		return fmt.Errorf("record %d is not exist in table %s", uid, tableName)
+	}
+
+	if cb(table.rows[rid]) == false {
+		log.Printf("record %d in table %s callback failed", uid, tableName)
+		return fmt.Errorf("record %d in table %s callback failed", uid, tableName)
+	}
+	return nil
+}
+
 //cmd支持REPLACE，INC，DEC，ZERO，某些特殊类型只支持REPLACE，strict是否严格模式，当严格模式时，当前行必须已被序列化, 成功时，返回该列更新前后的值
 func (table *Table) UpdateField(row Row, fieldName string, cmd string, value interface{}, strict bool) (string, string, error) {
 	tableName := table.tableName

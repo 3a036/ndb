@@ -58,7 +58,7 @@ func sample() {
 	go Work()
 
 	//////////////////建表/////////////////////////////////////////
-	u1 := models.User{UID: 1, GID: 0, TCC: decimal.New(99, 2), ETH: decimal.New(199, 2), NASH: decimal.New(299, 2), Worker: map[int]bool{2: true}}
+	u1 := models.User{UID: 1, GID: 0, TCC: decimal.New(99, 2), ETH: decimal.New(199, 2), NASH: decimal.New(299, 2), Worker: map[int]bool{2: true}, I1: 1000}
 	ndb.CreateTable(&u1)
 	ndb.Insert(&u1)
 	ndb.Insert(&u1)

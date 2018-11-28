@@ -48,6 +48,10 @@ func Update(row Row) error {
 	return DefaultDB.Update(row)
 }
 
+func UpdateFunc(row Row, cb func(row Row) bool) error {
+	return DefaultDB.UpdateFunc(row, cb)
+}
+
 func GetTable(tableName string) *Table {
 	return DefaultDB.GetTable(tableName)
 }
