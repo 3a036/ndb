@@ -1,1 +1,3 @@
 example/example
+example/cpu-profile*
+example/heap-profile*
