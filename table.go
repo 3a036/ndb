@@ -128,7 +128,7 @@ func (table *Table) insert(row Row, isLoad bool) error {
 	idx := table.nextIdx()
 
 	//创建meta
-	meta := &MetaInfo{Version: 1, UpdateStamp: time.Now(), SavedVersion: 0}
+	meta := &MetaInfo{Version: 1, UpdateStamp: time.Now(), SavedVersion: 0, SavedStamp: time.Now()}
 	////从数据库加载时load需传值，避免回写
 	if isLoad {
 		meta.SavedVersion = 1
