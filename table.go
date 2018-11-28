@@ -211,6 +211,13 @@ func (table *Table) UpdateFunc(row Row, cb func(row Row) bool) error {
 		log.Printf("record %d in table %s callback failed", uid, tableName)
 		return fmt.Errorf("record %d in table %s callback failed", uid, tableName)
 	}
+	//更新meta
+	meta := table.metas[uid]
+	meta.Version += 1
+	meta.UpdateStamp = time.Now()
+
+	//发起持久化指令
+	table.putTx("UPDATE", uid, meta.Version)
 	return nil
 }
 
