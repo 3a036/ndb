@@ -1,6 +1,9 @@
 package ndb
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 const (
 	K = 1024
@@ -15,9 +18,9 @@ const (
 
 type MetaInfo struct {
 	Version      uint64
-	UpdateStamp  int64
+	UpdateStamp  time.Time
 	SavedVersion uint64
-	SavedStamp   int64
+	SavedStamp   time.Time
 }
 
 type Table struct {

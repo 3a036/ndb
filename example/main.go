@@ -77,7 +77,7 @@ func sample() {
 		u := models.User{UID: i, GID: 0, TCC: decimal.New(99, 2), ETH: decimal.New(199, 2), NASH: decimal.New(299, 2), Worker: map[int]bool{1: true}}
 		ndb.Insert(&u)
 	}
-	mcnt := 100
+	mcnt := 1000000
 	start := time.Now().Unix()
 
 	//插入mcnt台矿机
@@ -96,6 +96,15 @@ func sample() {
 	///////////////////删除/////////////////////////////////////////
 
 	///////////////////更新/////////////////////////////////////////
+	start = time.Now().Unix()
+	for i := 0; i < mcnt; i++ {
+		u := models.User{UID: i % 10}
+		ndb.UpdateField(&u, "TCC", "INC", decimal.New(123, -1), false)
+	}
+
+	end = time.Now().Unix()
+	log.Printf("update %d records in %d second", mcnt, end-start)
+
 	start = time.Now().Unix()
 	for i := 0; i < mcnt; i++ {
 		m := models.TchMachine{ID: i % 10, GID: 0, UID: i % ucnt}
@@ -130,18 +139,18 @@ func sample() {
 		log.Printf("err is %+v", err)
 	}
 
-	if b, e, err := ndb.UpdateField(&u1, "I1", "ZERO", 0, false); err == nil {
+	if b, e, err := ndb.UpdateField(&u1, "I1", "ZERO", 0, true); err == nil {
 		log.Printf("I1 change from %s to %s", b, e)
 	} else {
 		log.Printf("err is %+v", err)
 	}
 
-	if b, e, err := ndb.UpdateField(&u1, "I1", "REPLACE", 1000, false); err == nil {
+	if b, e, err := ndb.UpdateField(&u1, "I1", "REPLACE", 1000, true); err == nil {
 		log.Printf("I1 change from %s to %s", b, e)
 	} else {
 		log.Printf("err is %+v", err)
 	}
-	if b, e, err := ndb.UpdateField(&u1, "I1", "INC", 100, false); err == nil {
+	if b, e, err := ndb.UpdateField(&u1, "I1", "INC", 100, true); err == nil {
 		log.Printf("I1 change from %s to %s", b, e)
 	} else {
 		log.Printf("err is %+v", err)
@@ -155,8 +164,8 @@ func sample() {
 	log.Printf("after u1 is %+v", u1)
 
 	m := models.TchMachine{GID: 0, UID: 1}
-	arr := ndb.GetByIndex(&m, "guid")
-	log.Printf("GID:0 UID:1's TchMachine is %+v", arr)
+	_ = ndb.GetByIndex(&m, "guid")
+	//log.Printf("GID:0 UID:1's TchMachine is %+v", arr)
 
 	///////////////////转账/////////////////////////////////////////////
 

@@ -90,7 +90,7 @@ func (table *Table) sortIndex(index string) {
 	table.sorting[index] = true
 	slock.Unlock()
 
-	time.AfterFunc(2*time.Second, func() {
+	time.AfterFunc(3*time.Second, func() {
 		slock := table.sortlock
 		slock.Lock()
 		table.sorting[index] = false
@@ -128,7 +128,7 @@ func (table *Table) insert(row Row, isLoad bool) error {
 	idx := table.nextIdx()
 
 	//创建meta
-	meta := &MetaInfo{Version: 1, UpdateStamp: time.Now().Unix(), SavedVersion: 0}
+	meta := &MetaInfo{Version: 1, UpdateStamp: time.Now(), SavedVersion: 0}
 	////从数据库加载时load需传值，避免回写
 	if isLoad {
 		meta.SavedVersion = 1
@@ -182,7 +182,7 @@ func (table *Table) Update(row Row) error {
 		//更新meta
 		meta := table.metas[uid]
 		meta.Version += 1
-		meta.UpdateStamp = time.Now().Unix()
+		meta.UpdateStamp = time.Now()
 
 		//发起持久化指令
 		table.putTx("UPDATE", uid, meta.Version)
@@ -206,7 +206,8 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 	e := ""
 
 	if strict { //严格模式，主要用在用户资产转账场景
-		if meta, ok := table.metas[uid]; !ok || meta.Version != meta.SavedVersion {
+		if meta, ok := table.metas[uid]; !ok || (meta.Version != meta.SavedVersion &&
+			meta.UpdateStamp.After(meta.SavedStamp.Add(5*time.Second))) {
 			log.Printf("row %d in table[%s] strict check failed", uid, tableName)
 			return b, e, fmt.Errorf("row %d in table[%s] strict check failed", uid, tableName)
 		}
@@ -269,7 +270,7 @@ func (table *Table) UpdateField(row Row, fieldName string, cmd string, value int
 		//更新meta
 		meta := table.metas[uid]
 		meta.Version += 1
-		meta.UpdateStamp = time.Now().Unix()
+		meta.UpdateStamp = time.Now()
 
 		//发起持久化指令
 		table.putTx("UPDATE", uid, meta.Version)
@@ -412,6 +413,6 @@ func (table *Table) UpdateSavedVersion(uid int, version uint64) {
 
 	if meta, ok := table.metas[uid]; ok && meta.SavedVersion < version {
 		meta.SavedVersion = version
-		meta.SavedStamp = time.Now().Unix()
+		meta.SavedStamp = time.Now()
 	}
 }

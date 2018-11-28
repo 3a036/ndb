@@ -8,13 +8,17 @@ type TchMachine struct {
 	UID int
 }
 
-//索引列的值暂不支持修改，如需修改，可以先删除记录，再插入新记录
-func (t *TchMachine) Index() map[string][]string {
-	return map[string][]string{
+var (
+	indexs = map[string][]string{
 		"guid": {"GID", "UID"},
 		"gid":  {"GID"},
 		"uid":  {"UID"},
 	}
+)
+
+//索引列的值暂不支持修改，如需修改，可以先删除记录，再插入新记录
+func (t *TchMachine) Index() map[string][]string {
+	return indexs
 }
 
 func (t *TchMachine) GetUID() int {
