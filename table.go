@@ -30,8 +30,12 @@ func newTable(dbName, tableName string) *Table {
 		idxIndexes: make(map[int]int),
 		metas:      make(map[int]*MetaInfo),
 		indexes:    make(map[string][]int),
+		stats:      make(map[string][]*Stat),
+		fieldStats: make(map[string]map[string]int),
 		sorting:    make(map[string]bool),
+		statting:   false,
 		sortlock:   &sync.Mutex{},
+		statlock:   &sync.Mutex{},
 		lock:       &sync.Mutex{},
 		allocChan:  make(chan int, ROWSIZE),
 	}
@@ -62,6 +66,9 @@ func (tb *Table) putIdx(idx int) {
 }
 
 func (tb *Table) getIndexKey(row Row, indexName string) string {
+	if indexName == PRIMARYKEY {
+		return indexName
+	}
 	if indexs := row.Index(); indexs != nil {
 		if indexFields, ok := indexs[indexName]; ok {
 			indexKey := indexName
@@ -73,9 +80,7 @@ func (tb *Table) getIndexKey(row Row, indexName string) string {
 			return indexKey
 		}
 	}
-
 	return ""
-
 }
 
 func (table *Table) sortIndex(index string) {
@@ -110,6 +115,37 @@ func (table *Table) sortIndex(index string) {
 		end := time.Now().Unix()
 		log.Printf("sort index %s:%s %d records finished in %d second", table.tableName, index, length, end-start)
 	})
+}
+
+func (table *Table) sortStat(statName string) {
+	slock := table.statlock
+	slock.Lock()
+
+	if table.statting {
+		slock.Unlock()
+		return
+	}
+	table.statting = true
+	slock.Unlock()
+
+	time.AfterFunc(3*time.Second, func() {
+		slock := table.statlock
+		slock.Lock()
+		table.statting = false
+		slock.Unlock()
+
+		start := time.Now().Unix()
+		lock := table.lock
+		lock.Lock()
+
+		sort.SliceStable(table.stats[statName], func(i, j int) bool { return table.stats[statName][i].Count > table.stats[statName][j].Count })
+
+		lock.Unlock()
+		end := time.Now().Unix()
+		log.Printf("sort stat %s:%s %d records finished in %d second", table.tableName, statName, len(table.stats[statName]), end-start)
+
+	})
+
 }
 
 func (table *Table) insert(row Row, isLoad bool) error {
@@ -165,6 +201,47 @@ func (table *Table) insert(row Row, isLoad bool) error {
 		//索引排序
 		table.sortIndex(indexKey)
 	}
+
+	stats := row.Stat()
+	if stats == nil {
+		return nil
+	}
+
+	//存在统计列，创建统计数据
+	for statName, statFields := range stats {
+		if len(statFields) == 0 {
+			continue
+		}
+		sort.StringSlice(statFields).Sort() //先排
+		val := reflect.ValueOf(row)
+		statKey := make(map[string]interface{})
+		statKeyStr := ""
+		for i := 0; i < len(statFields); i++ {
+			statKey[statFields[i]] = reflect.Indirect(val).FieldByName(statFields[i]).Interface()
+			statKeyStr += fmt.Sprintf(":%v", reflect.Indirect(val).FieldByName(statFields[i]))
+		}
+
+		log.Printf("stat key of %s is %+v", statName, statKey)
+
+		if _, ok := table.fieldStats[statName]; !ok {
+			table.fieldStats[statName] = make(map[string]int)
+		}
+
+		if _, ok := table.fieldStats[statName][statKeyStr]; !ok { //创建新记录
+			table.fieldStats[statName][statKeyStr] = 1
+			table.stats[statName] = append(table.stats[statName], &Stat{statKey, 1})
+		} else {
+			table.fieldStats[statName][statKeyStr] += 1
+			for i := 0; i < len(table.stats[statName]); i++ {
+				if reflect.DeepEqual(table.stats[statName][i].StatKey, statKey) {
+					table.stats[statName][i].Count += 1
+					break
+				}
+			}
+		}
+		table.sortStat(statName)
+	}
+
 	return nil
 }
 
@@ -349,6 +426,19 @@ func (table *Table) GetByIndex(row Row, indexName string) []int {
 	return table.indexes[indexKey]
 }
 
+func (table *Table) GetStat(row Row, statName string, all bool) []*Stat {
+	lock := table.lock
+	lock.Lock()
+	defer lock.Unlock()
+
+	if !all { //查特定条件， todo
+		return nil
+	}
+
+	//查全部
+	return table.stats[statName]
+}
+
 func (table *Table) Delete(row Row) {
 	tableName := getTableName(row)
 	uid := row.GetUID()
@@ -411,6 +501,51 @@ func (table *Table) Delete(row Row) {
 
 		//索引排序
 		table.sortIndex(indexKey)
+	}
+
+	stats := row.Stat()
+	if stats == nil {
+		return
+	}
+
+	//存在统计列，删除统计数据
+	for statName, statFields := range stats {
+		if len(statFields) == 0 {
+			continue
+		}
+		sort.StringSlice(statFields).Sort() //先排
+		val := reflect.ValueOf(row)
+		statKey := make(map[string]interface{})
+		statKeyStr := ""
+		for i := 0; i < len(statFields); i++ {
+			statKey[statFields[i]] = reflect.Indirect(val).FieldByName(statFields[i]).Interface()
+			statKeyStr += fmt.Sprintf(":%v", reflect.Indirect(val).FieldByName(statFields[i]))
+		}
+
+		log.Printf("stat key of %s is %+v", statName, statKey)
+
+		if _, ok := table.fieldStats[statName]; !ok {
+			panic("what!!!")
+		}
+
+		if _, ok := table.fieldStats[statName][statKeyStr]; !ok {
+			panic("what!!!!!!")
+		} else {
+			table.fieldStats[statName][statKeyStr] -= 1
+			if table.fieldStats[statName][statKeyStr] < 0 {
+				panic("what!!!!!!!!!")
+			}
+			for i := 0; i < len(table.stats[statName]); i++ {
+				if reflect.DeepEqual(table.stats[statName][i].StatKey, statKey) {
+					table.stats[statName][i].Count -= 1
+					if table.stats[statName][i].Count < 0 {
+						panic("what!!!!!!!!!!!!!")
+					}
+					break
+				}
+			}
+		}
+		table.sortStat(statName)
 	}
 }
 

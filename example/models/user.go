@@ -25,6 +25,10 @@ func (u *User) Index() map[string][]string {
 	return nil
 }
 
+func (u *User) Stat() map[string][]string {
+	return nil
+}
+
 func (u *User) Encode() []byte {
 	bs, _ := json.Marshal(u)
 	return bs

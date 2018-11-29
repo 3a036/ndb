@@ -9,16 +9,24 @@ type TchMachine struct {
 }
 
 var (
-	indexs = map[string][]string{
+	indexes = map[string][]string{
 		"guid": {"GID", "UID"},
 		"gid":  {"GID"},
 		"uid":  {"UID"},
+	}
+	stats = map[string][]string{
+		"guid": {"GID", "UID"},
 	}
 )
 
 //索引列的值暂不支持修改，如需修改，可以先删除记录，再插入新记录
 func (t *TchMachine) Index() map[string][]string {
-	return indexs
+	return indexes
+}
+
+//索引列的值暂不支持修改，如需修改，可以先删除记录，再插入新记录
+func (t *TchMachine) Stat() map[string][]string {
+	return stats
 }
 
 func (t *TchMachine) GetUID() int {

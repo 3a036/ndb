@@ -78,6 +78,12 @@ func (db *DB) GetByIndex(row Row, indexName string) []int {
 	return table.GetByIndex(row, indexName)
 }
 
+func (db *DB) GetStat(row Row, statName string, all bool) []*Stat {
+	tableName := getTableName(row)
+	table := db.mustGetTable(tableName)
+	return table.GetStat(row, statName, all)
+}
+
 func (db *DB) Delete(row Row) {
 	tableName := getTableName(row)
 	table := db.mustGetTable(tableName)

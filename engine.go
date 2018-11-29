@@ -28,6 +28,10 @@ func GetByIndex(row Row, indexName string) []int {
 	return DefaultDB.GetByIndex(row, indexName)
 }
 
+func GetStat(row Row, statName string, all bool) []*Stat {
+	return DefaultDB.GetStat(row, statName, all)
+}
+
 func Delete(row Row) {
 	DefaultDB.Delete(row)
 }
