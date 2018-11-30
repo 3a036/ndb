@@ -77,7 +77,7 @@ func sample() {
 		u := models.User{UID: i, GID: 0, TCC: decimal.New(99, 2), ETH: decimal.New(199, 2), NASH: decimal.New(299, 2), Worker: map[int]bool{1: true}}
 		ndb.Insert(&u)
 	}
-	mcnt := 96
+	mcnt := 1000000
 	start := time.Now().Unix()
 
 	//插入mcnt台矿机
@@ -165,9 +165,10 @@ func sample() {
 
 	m := models.TchMachine{GID: 0, UID: 1}
 	arr := ndb.GetByIndex(&m, "guid")
-	log.Printf("GID:0 UID:1's TchMachine is %+v", arr)
+	log.Printf("GID:0 UID:1's TchMachine count is %d", len(arr))
 
 	arr = ndb.GetByIndex(&m, "pk")
+	log.Printf("TchMachine count is %d", len(arr))
 
 	time.Sleep(5 * time.Second)
 	stat := ndb.GetStat(&m, "guid", true)

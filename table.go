@@ -232,7 +232,7 @@ func (table *Table) insert(row Row, isLoad bool) error {
 		}
 
 		statKey, statKeyStr := table.getStatKey(row, statName)
-		log.Printf("stat key of %s is %+v", statName, statKey)
+		//log.Printf("stat key of %s is %+v", statName, statKey)
 
 		if _, ok := table.fieldStats[statName]; !ok {
 			table.fieldStats[statName] = make(map[string]int)
@@ -458,7 +458,6 @@ func (table *Table) GetStat(row Row, statName string, all bool) []*Stat {
 }
 
 func (table *Table) Delete(row Row) {
-	tableName := getTableName(row)
 	uid := row.GetUID()
 	lock := table.lock
 	lock.Lock()
@@ -493,7 +492,7 @@ func (table *Table) Delete(row Row) {
 	//列表排序
 	table.sortIndex(pk)
 
-	log.Printf("delete recoed %d from %s", uid, tableName)
+	//log.Printf("delete recoed %d from %s", uid, table.tableName)
 
 	indexs := row.Index()
 	if indexs == nil {
