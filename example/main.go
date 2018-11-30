@@ -164,8 +164,10 @@ func sample() {
 	log.Printf("after u1 is %+v", u1)
 
 	m := models.TchMachine{GID: 0, UID: 1}
-	_ = ndb.GetByIndex(&m, "guid")
-	//log.Printf("GID:0 UID:1's TchMachine is %+v", arr)
+	arr := ndb.GetByIndex(&m, "guid")
+	log.Printf("GID:0 UID:1's TchMachine is %+v", arr)
+
+	arr = ndb.GetByIndex(&m, "pk")
 
 	time.Sleep(5 * time.Second)
 	stat := ndb.GetStat(&m, "guid", true)
@@ -173,6 +175,12 @@ func sample() {
 		log.Printf("TchMachine stat[%d] is %+v", i, stat[i])
 
 	}
+	stat = ndb.GetStat(&m, "guid", false)
+	for i := 0; i < len(stat); i++ {
+		log.Printf("TchMachine stat[%d] is %+v", i, stat[i])
+
+	}
+
 	///////////////////转账/////////////////////////////////////////////
 
 }

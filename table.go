@@ -83,6 +83,24 @@ func (tb *Table) getIndexKey(row Row, indexName string) string {
 	return ""
 }
 
+func (tb *Table) getStatKey(row Row, statName string) (map[string]interface{}, string) {
+	if stats := row.Stat(); stats != nil {
+		if statFields, ok := stats[statName]; ok {
+			sort.StringSlice(statFields).Sort() //先排
+			val := reflect.ValueOf(row)
+			statKey := make(map[string]interface{})
+			statKeyStr := ""
+			for i := 0; i < len(statFields); i++ {
+				statKey[statFields[i]] = reflect.Indirect(val).FieldByName(statFields[i]).Interface()
+				statKeyStr += fmt.Sprintf(":%v", reflect.Indirect(val).FieldByName(statFields[i]))
+			}
+			return statKey, statKeyStr
+		}
+	}
+
+	return nil, ""
+}
+
 func (table *Table) sortIndex(index string) {
 	slock := table.sortlock
 	slock.Lock()
@@ -212,15 +230,8 @@ func (table *Table) insert(row Row, isLoad bool) error {
 		if len(statFields) == 0 {
 			continue
 		}
-		sort.StringSlice(statFields).Sort() //先排
-		val := reflect.ValueOf(row)
-		statKey := make(map[string]interface{})
-		statKeyStr := ""
-		for i := 0; i < len(statFields); i++ {
-			statKey[statFields[i]] = reflect.Indirect(val).FieldByName(statFields[i]).Interface()
-			statKeyStr += fmt.Sprintf(":%v", reflect.Indirect(val).FieldByName(statFields[i]))
-		}
 
+		statKey, statKeyStr := table.getStatKey(row, statName)
 		log.Printf("stat key of %s is %+v", statName, statKey)
 
 		if _, ok := table.fieldStats[statName]; !ok {
@@ -431,8 +442,15 @@ func (table *Table) GetStat(row Row, statName string, all bool) []*Stat {
 	lock.Lock()
 	defer lock.Unlock()
 
-	if !all { //查特定条件， todo
-		return nil
+	if !all { //查特定条件
+		if val, ok := table.fieldStats[statName]; ok {
+			statKey, statKeystr := table.getStatKey(row, statName)
+			if v, ok := val[statKeystr]; ok {
+				return []*Stat{&Stat{statKey, v}}
+			}
+			return []*Stat{&Stat{statKey, 0}}
+		}
+
 	}
 
 	//查全部
@@ -513,14 +531,8 @@ func (table *Table) Delete(row Row) {
 		if len(statFields) == 0 {
 			continue
 		}
-		sort.StringSlice(statFields).Sort() //先排
-		val := reflect.ValueOf(row)
-		statKey := make(map[string]interface{})
-		statKeyStr := ""
-		for i := 0; i < len(statFields); i++ {
-			statKey[statFields[i]] = reflect.Indirect(val).FieldByName(statFields[i]).Interface()
-			statKeyStr += fmt.Sprintf(":%v", reflect.Indirect(val).FieldByName(statFields[i]))
-		}
+
+		statKey, statKeyStr := table.getStatKey(row, statName)
 
 		log.Printf("stat key of %s is %+v", statName, statKey)
 
